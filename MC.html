@@ -110,13 +110,18 @@
 			}
 
 			// add year and state filter dropdowns to add or remove layers
-			var yearFilter, stateFilter;
-			var initialYear = "2019";
-			var initialState = "Nevada";
+			var yearFilter, stateFilter, bioFilter;
 			var year = ["2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020"];
+			var initialYear = "2002";
 			var states = ["Wyoming", "Nevada", "Idaho"];
+			var initialState = "Wyoming";
+			var bios = [
+				"Precipitation", "Soil Moisture", "Temperature", "Days 20-35\u00B0C",
+				"NDVI", "DEM", "Slope", "Aspect", "TRI"];
+			var initialBio = "Precipitation";
 			yearFilter = document.createElement("select");
 			stateFilter = document.createElement("select");
+			bioFilter = document.createElement("select");
 			filterClass = "esri-widget esri-select";
 			filterStyle = "width: 200px; font-family: Avenir Next W00; font-size: 1em;";
 			yearFilter.setAttribute("id", "yearSelect");
@@ -125,6 +130,9 @@
 			stateFilter.setAttribute("id", "stateSelect");
 			stateFilter.setAttribute("class", filterClass);
 			stateFilter.setAttribute("style", filterStyle);
+			bioFilter.setAttribute("id", "stateSelect");
+			bioFilter.setAttribute("class", filterClass);
+			bioFilter.setAttribute("style", filterStyle);
 			year.forEach(function (sql) {
 				var option = document.createElement("option");
 				option.value = sql;
@@ -137,17 +145,29 @@
 				option.innerHTML = "State: " + sql;
 				stateFilter.appendChild(option);
 			});
+			bios.forEach(function (sql) {
+				var option = document.createElement("option");
+				option.value = sql;
+				option.innerHTML = "Env: " + sql;
+				bioFilter.appendChild(option);
+			});
 			view.ui.add(yearFilter, "top-right");
 			view.ui.add(stateFilter, "top-right");
+			view.ui.add(bioFilter, "top-right");
 			yearFilter.value = initialYear;
 			stateFilter.value = initialState;
+			bioFilter.value = initialBio;
 			yearFilter.addEventListener("change", function (event) {
 				initialYear = event.target.value;
-				updateLayers(initialYear, initialState);
+				updateLayers(initialYear, initialState, initialBio);
 			});
 			stateFilter.addEventListener("change", function (event) {
 				initialState = event.target.value;
-				updateLayers(initialYear, initialState);
+				updateLayers(initialYear, initialState, initialBio);
+			});
+			bioFilter.addEventListener("change", function (event) {
+				initialBio = event.target.value;
+				updateLayers(initialYear, initialState, initialBio);
 			});
 			const state_short = {
 				"Wyoming": "WY",
@@ -159,8 +179,58 @@
 				"Nevada": [-116.4194, 38.8026],
 				"Idaho": [-114.742, 44.0682]
 			}
-			function updateLayers(year, state) {
+			function updateLayers(year, state, bio) {
 				map.removeAll();
+
+				bio_show_pre_year = ["Precipitation", "NDVI", "Temperature", "Soil Moisture"];
+				bio_show_curr_year = ["Days 20-35\u00B0C"];
+				if (bio_show_pre_year.includes(bio)) {
+					const pre_year = parseInt(year) - 1;
+					const curr_layer_bio_fall = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + bio + "_" + state_short[state] + "_"  + pre_year + "_fall/MapServer",
+						title: bio + " in " + state + " " + pre_year + " fall",
+						listMode: "hide-children"
+					});
+					const curr_layer_bio_winter = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + bio + "_" + state_short[state] + "_"  + pre_year + "_winter/MapServer",
+						title: bio + " in " + state + " " + pre_year + " winter",
+						listMode: "hide-children"
+					});
+					const curr_layer_bio_spring = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + bio + "_" + state_short[state] + "_"  + year + "_spring/MapServer",
+						title: bio + " in " + state + " " + year + " spring",
+						listMode: "hide-children"
+					});
+					const curr_layer_bio_summer = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + bio + "_" + state_short[state] + "_"  + year + "_summer/MapServer",
+						title: bio + " in " + state + " " + year + " summer",
+						listMode: "hide-children"
+					});
+					map.add(curr_layer_bio_summer);
+					map.add(curr_layer_bio_spring);
+					map.add(curr_layer_bio_winter);
+					map.add(curr_layer_bio_fall);
+				}
+				else if (bio_show_curr_year.includes(bio)) {
+					if (bio == "Days 20-35\u00B0C") {
+						field = "Number_of_days_20_to_35_C"
+					}
+					const curr_layer_bio = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + field + "_" + state_short[state] + "_"  + year + "/MapServer",
+						title: bio + " in " + state + " " + year,
+						listMode: "hide-children"
+					});
+					map.add(curr_layer_bio);
+				}
+				else {
+					const curr_layer_bio = new TileLayer({
+						url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + bio + "_" + state_short[state] + "/MapServer",
+						title: bio + " in " + state,
+						listMode: "hide-children"
+					});
+					map.add(curr_layer_bio);
+				}
+
 				const curr_layer = new TileLayer({
 					url: "https://tiles.arcgis.com/tiles/b3fMqPOmotX6SV4k/arcgis/rest/services/" + state_short[state] + "_MC_Density_" + year + "/MapServer",
 					title: "Estimated Mormon Cricket Density in " + state + " " + year,//state + " Mormon Crickets Density " + year,
@@ -169,12 +239,13 @@
 					listMode: "hide-children",
 				})
 				map.add(curr_layer);
+
 				view.goTo({
 					center: center_dict[state],
 					zoom: 7
 				});
 			}
-			updateLayers(initialYear, initialState);
+			updateLayers(initialYear, initialState, initialBio);
 
 			// ----------------------------------------- Add Basemap Gallery -----------------------------------------
 			const basemapGallery = new BasemapGallery({
