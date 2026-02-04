@@ -116,7 +116,7 @@
 			var states = ["Wyoming", "Nevada", "Idaho"];
 			var initialState = "Wyoming";
 			var bios = [
-				"Precipitation", "Soil Moisture", "Temperature", "Days 20-35\u00B0C",
+				"Precipitation", "Soil_Moisture", "Temperature", "Days 20-35\u00B0C",
 				"NDVI", "DEM", "Slope", "Aspect", "TRI"];
 			var initialBio = "Precipitation";
 			yearFilter = document.createElement("select");
@@ -148,7 +148,11 @@
 			bios.forEach(function (sql) {
 				var option = document.createElement("option");
 				option.value = sql;
-				option.innerHTML = "Env: " + sql;
+				if (sql == "Soil_Moisture")
+					option.innerHTML = "Env: Soil Moisture";
+				else{
+					option.innerHTML = "Env: " + sql;
+				}
 				bioFilter.appendChild(option);
 			});
 			view.ui.add(yearFilter, "top-right");
@@ -182,7 +186,7 @@
 			function updateLayers(year, state, bio) {
 				map.removeAll();
 
-				bio_show_pre_year = ["Precipitation", "NDVI", "Temperature", "Soil Moisture"];
+				bio_show_pre_year = ["Precipitation", "NDVI", "Temperature", "Soil_Moisture"];
 				bio_show_curr_year = ["Days 20-35\u00B0C"];
 				if (bio_show_pre_year.includes(bio)) {
 					const pre_year = parseInt(year) - 1;
